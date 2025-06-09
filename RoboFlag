@@ -51,15 +51,15 @@ void forward(){
    Motor2.Forward(255);
 }
 
-void curvadir(){
-     // Só direito detecta a linha → virar para direita
+void curvaesq(){
+     // Só direito detecta a linha → virar para esquerda
   Motor1.Forward(255); 
   // direito para frente
   Motor2.Stop(); // esquerdo para trás
 }
 
-void curvaesq(){
-    // Só esquerdo detecta a linha → virar para esquerda
+void curvadir(){
+    // Só esquerdo detecta a linha → virar para direita
   Motor2.Forward(255);  // esquerdo para frente
   Motor1.Stop(); // direito para trás 
   }
@@ -139,10 +139,10 @@ void loop() {
      }
 
       if(flagdir == true){
-           curvaesq();
+           curvadir();
       }
       if (flagesq == true){
-           curvadir();
+           curvaesq();
       }
   
       if((leituraIRd == LOW && leituraIRe == LOW) && (flagdir == false && flagesq == false)){
@@ -153,14 +153,14 @@ void loop() {
       if (leituraIRe == HIGH) {
         // detecta para fazer curva para a esquerda
           flagdir = false;
-          if( flagesq == false)  curvadir();
+          if( flagesq == false)  curvaesq();
         
           
       } 
       if ( leituraIRd == HIGH ) {
         // detecta para fazer curva para a direita
           flagesq = false;
-          if(flagdir == false) curvaesq();
+          if(flagdir == false) curvadir();
           
       }
      
