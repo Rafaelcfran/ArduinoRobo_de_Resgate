@@ -16,12 +16,6 @@ public:
     digitalWrite(pin1, LOW);
     digitalWrite(pin2, HIGH);
     analogWrite(enable, spd);
-    delay(25);
-
-    digitalWrite(pin1, LOW);
-    digitalWrite(pin2, LOW);
-    analogWrite(enable, spd);
-    delay(25);
   }
 
   void Backward(int speed) {
@@ -29,16 +23,11 @@ public:
     digitalWrite(pin1, HIGH);
     digitalWrite(pin2, LOW);
     analogWrite(enable, spd);
-    delay(25);
-    digitalWrite(pin1, LOW);
-    digitalWrite(pin2, LOW);
-    analogWrite(enable, spd);
-    delay(25);
   }
 
   void Stop() {
-    digitalWrite(pin1, LOW);
-    digitalWrite(pin2, LOW);
+    digitalWrite(pin1, HIGH);
+    digitalWrite(pin2, HIGH);
     analogWrite(enable, 0);
   }
 };
@@ -47,28 +36,46 @@ DCMotor Motor1, Motor2;
 //Motor 2 = motor esquerdo
 //Motor 1 = motor direito
 int estadoAtual, estadoAnterior;
+
 #define ESTADO_PARADO 0
 #define ESTADO_FRENTE 1
 #define ESTADO_DIREITA 2
 #define ESTADO_ESQUERDA 3
 #define ESTADO_TRAS -1
+unsigned long UScontadorMillis = millis();
+
 
 void forward() {
-  Motor1.Forward(255);
-  Motor2.Forward(255);
+  if (millis() - UScontadorMillis <= 20) {
+    Motor1.Forward(223);
+    Motor2.Forward(255);
+
+
+  } else if (millis() - UScontadorMillis <= 80) {
+    Motor1.Stop();
+    Motor2.Stop();
+  } else UScontadorMillis = millis();
 }
 
 void curvaesq() {
-  // Só direito detecta a linha → virar para esquerda
-  Motor1.Forward(255);
-  // direito para frente
-  Motor2.Stop();  // esquerdo para trás
+  if (millis() - UScontadorMillis <= 20) {
+    Motor1.Forward(203);
+
+    Motor2.Stop();
+  } else if (millis() - UScontadorMillis <= 80) {
+    Motor1.Stop();
+    Motor2.Stop();
+  } else UScontadorMillis = millis();
 }
 
 void curvadir() {
-  // Só esquerdo detecta a linha → virar para direita
-  Motor2.Forward(255);  // esquerdo para frente
-  Motor1.Stop();        // direito para trás
+  if (millis() - UScontadorMillis <= 20) {
+    Motor2.Forward(225);
+    Motor1.Stop();
+  } else if (millis() - UScontadorMillis <= 80) {
+    Motor1.Stop();
+    Motor2.Stop();
+  } else UScontadorMillis = millis();
 }
 
 
@@ -78,13 +85,18 @@ void stop() {
 }
 
 void backward() {
-  Motor1.Backward(255);
-  Motor2.Backward(255);
+  if (millis() - UScontadorMillis <= 20) {
+    Motor1.Backward(255);
+    Motor2.Backward(205);
+  } else if (millis() - UScontadorMillis <= 80) {
+    Motor1.Stop();
+    Motor2.Stop();
+  } else UScontadorMillis = millis();
 }
 
 const int pinoTrig = 10;  // Pino do Trigger
 const int pinoEcho = 11;  // Pino do Echo
-unsigned long UScontadorMillis = millis();
+
 unsigned long UScontadorMicros = micros();
 float distancia;
 
@@ -126,14 +138,7 @@ void loop() {
   leituraIRpontaE = digitalRead(pinoIRpontaE);
   leituraIRd = digitalRead(pinoIRd);
 
-  if (leituraIRpontaD == HIGH) {
-    flagdir = true;
-  }
-
-
-  if (leituraIRpontaE == HIGH) flagesq = true;
-
-  if ((millis() - IRcontadorMillis) >= 100) {
+  if ((millis() - IRcontadorMillis) >= 2000) {
     Serial.print("leitura da infra da flag esquerda é ");
     Serial.println(leituraIRpontaE);
     Serial.print("leitura da flag esquerda é ");
@@ -150,99 +155,50 @@ void loop() {
     IRcontadorMillis = millis();
   }
 
-  // if (flagdir == true) {
-  //   estadoAtual = ESTADO_DIREITA;
-  // } else {
-  //   if (leituraIRd == HIGH) {
-  //     // detecta para fazer curva para a direita
-  //     flagesq = false;
-  //     estadoAtual = ESTADO_DIREITA;
-  //   }
-  // }
-
-  // if (flagesq == true) {
-  //   estadoAtual = ESTADO_ESQUERDA;
-  // } else {
-  //   if (leituraIRe == HIGH) {
-  //     // detecta para fazer curva para a esquerda
-  //     flagdir = false;
-  //     estadoAtual = ESTADO_ESQUERDA;
-  //   }
-  // }
-
-  // if ((leituraIRd == LOW && leituraIRe == LOW) && (flagdir == false && flagesq == false)) {
-  //   estadoAtual = ESTADO_FRENTE;
-  // }
 
   // ------------------------------------------- Prioridade da Lógica de Estado ------------------------------------------
-
-  // 1. Condições de Parada ou Perda Total da Linha (maior prioridade)
-
+  if (leituraIRpontaD == HIGH) flagdir = true;
 
 
-  if (leituraIRpontaD == HIGH && leituraIRpontaE == HIGH) {  // Ambas as pontas detectam
-    estadoAtual = ESTADO_PARADO;                             // Robô encontrou uma encruzilhada ou o fim da linha
-    // Resete as flags para o próximo ciclo, já que essa situação foi tratada
-    flagdir = false;
-    flagesq = false;
-  }
-  // Se ambos os sensores laterais (principais) estão fora da linha E as flags de ponta estão inativas,
-  // o robô pode ter saído completamente da linha ou estar em um ponto cego.
-  else if ((leituraIRd == LOW && leituraIRe == LOW) && (flagdir == false && flagesq == false)) {
-    estadoAtual = ESTADO_FRENTE;  // Ou ESTADO_TRAS para tentar voltar
-  }
 
-  // 2. Curvas Acentuadas ou Detecção de Ponta (prioridade intermediária)
+  if (leituraIRpontaE == HIGH) flagesq = true;
 
 
-  // Se a flag de direita ou o sensor de ponta direita está ativo
-  else if (flagdir == true || leituraIRpontaD == HIGH) {
-    estadoAtual = ESTADO_DIREITA;  // Gira para a direita
-    // Resete a flag depois de usá-la, para que a decisão seja baseada em novas leituras
-    // ou se a condição de curva é contínua.
-    // Ajuste isso se a flag deve persistir por mais tempo
-    flagesq = false;  // Garante que a outra flag não interfere se já era true
-  }
-  // Se a flag de esquerda ou o sensor de ponta esquerda está ativo
-  else if (flagesq == true || leituraIRpontaE == HIGH) {
-    estadoAtual = ESTADO_ESQUERDA;  // Gira para a esquerda
-    // Resete a flag
-
-    flagdir = false;  // Garante que a outra flag não interfere se já era true
-  }
-
-  // 3. Seguindo a Linha Normalmente (prioridade mais baixa - padrão)
-  // Se nenhuma das condições acima for atendida, o robô está sobre a linha ou precisa de pequenas correções.
-
-  // Se o sensor direito detecta a linha (robô desviando para a esquerda, precisa virar à direita)
-  else if (leituraIRd == HIGH && leituraIRe == LOW) {  // Apenas sensor direito na linha
+  if (flagdir == true) {
     estadoAtual = ESTADO_DIREITA;
+  } else {
+    if (leituraIRd == HIGH) {
+      // detecta para fazer curva para a direita
+      flagesq = false;
+      estadoAtual = ESTADO_DIREITA;
+    }
   }
-  // Se o sensor esquerdo detecta a linha (robô desviando para a direita, precisa virar à esquerda)
-  else if (leituraIRe == HIGH && leituraIRd == LOW) {  // Apenas sensor esquerdo na linha
+
+  if (flagesq == true) {
     estadoAtual = ESTADO_ESQUERDA;
+  } else {
+    if (leituraIRe == HIGH) {
+      // detecta para fazer curva para a esquerda
+      flagdir = false;
+      estadoAtual = ESTADO_ESQUERDA;
+    }
   }
-  // Se ambos os sensores laterais (principais) estão na linha, ou ambos estão fora (mas não na condição de parada total)
-  // Isso geralmente significa que o robô está centralizado na linha.
-  //else if (leituraIRe == HIGH && leituraIRd == HIGH) estadoAtual = ESTADO_FRENTE;
 
-  // Caso nenhum dos sensores esteja na linha e não ativou as flags de ponta,
-
-  else
-    estadoAtual = ESTADO_PARADO;  // Ou mantenha o estado anterior: estadoAtual = estadoAnterior;
-
-
-  if (estadoAtual != estadoAnterior) {
-    /*if(flagdir == true && flagesq == true && estadoAnterior == ESTADO_DIREITA){
-      flagesq= false;
-      estadoAtual = estadoAnterior;
-    }else  if(flagdir == true && flagesq == true && estadoAnterior == ESTADO_ESQUERDA){
-      flagdir= false;
-      estadoAtual = estadoAnterior;
-    
-    }else*/
-    estadoAnterior = estadoAtual;
+  if ((leituraIRd == LOW && leituraIRe == LOW) && (flagdir == false && flagesq == false)) {
+    estadoAtual = ESTADO_FRENTE;
   }
+
+
+  if (flagdir == true && flagesq == true && estadoAnterior == ESTADO_DIREITA) {
+    flagesq = false;
+    estadoAtual = estadoAnterior;
+  } else if (flagdir == true && flagesq == true && estadoAnterior == ESTADO_ESQUERDA) {
+    flagdir = false;
+    estadoAtual = estadoAnterior;
+  }
+
+  if (estadoAtual != estadoAnterior) estadoAnterior = estadoAtual;
+
   switch (estadoAtual) {
     case ESTADO_FRENTE:
       forward();
