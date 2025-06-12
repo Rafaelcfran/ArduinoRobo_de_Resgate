@@ -42,13 +42,14 @@ int estadoAtual, estadoAnterior;
 #define ESTADO_DIREITA 2
 #define ESTADO_ESQUERDA 3
 #define ESTADO_TRAS -1
+#define ESTADO_FRENTE_SAPATINHO 4
 unsigned long UScontadorMillis = millis();
 
 
-void forward() {
+void forward(int v1, int v2) {
   if (millis() - UScontadorMillis <= 20) {
-    Motor1.Forward(223);
-    Motor2.Forward(255);
+    Motor1.Forward(v1);
+    Motor2.Forward(v2);
 
 
   } else if (millis() - UScontadorMillis <= 80) {
@@ -59,7 +60,7 @@ void forward() {
 
 void curvaesq() {
   if (millis() - UScontadorMillis <= 20) {
-    Motor1.Forward(203);
+    Motor1.Forward(233);
 
     Motor2.Stop();
   } else if (millis() - UScontadorMillis <= 80) {
@@ -70,7 +71,7 @@ void curvaesq() {
 
 void curvadir() {
   if (millis() - UScontadorMillis <= 20) {
-    Motor2.Forward(225);
+    Motor2.Forward(255);
     Motor1.Stop();
   } else if (millis() - UScontadorMillis <= 80) {
     Motor1.Stop();
@@ -164,6 +165,11 @@ void loop() {
   if (leituraIRpontaE == HIGH) flagesq = true;
 
 
+  if ((leituraIRd == HIGH && leituraIRe == HIGH) && (flagdir == false && flagesq == false)) {
+    estadoAtual = ESTADO_FRENTE_SAPATINHO;
+  }
+
+
   if (flagdir == true) {
     estadoAtual = ESTADO_DIREITA;
   } else {
@@ -201,7 +207,7 @@ void loop() {
 
   switch (estadoAtual) {
     case ESTADO_FRENTE:
-      forward();
+      forward(230, 255);
       break;
 
     case ESTADO_PARADO:
@@ -218,6 +224,10 @@ void loop() {
 
     case ESTADO_TRAS:
       backward();
+      break;
+
+    case ESTADO_FRENTE_SAPATINHO:
+      forward(150, 180);
       break;
   }
 }
