@@ -1,35 +1,35 @@
 class DCMotor {
-    int spd = 255, pin1, pin2, enable;
+  int spd = 255, pin1, pin2, enable;
 
-  public:
-    void Pinout(int in1, int in2, int enb) {
-      pin1 = in1;
-      pin2 = in2;
-      enable = enb;
-      pinMode(pin1, OUTPUT);
-      pinMode(pin2, OUTPUT);
-      pinMode(enable, OUTPUT);
-    }
+public:
+  void Pinout(int in1, int in2, int enb) {
+    pin1 = in1;
+    pin2 = in2;
+    enable = enb;
+    pinMode(pin1, OUTPUT);
+    pinMode(pin2, OUTPUT);
+    pinMode(enable, OUTPUT);
+  }
 
-    void Forward(int speed) {
-      spd = speed;
-      digitalWrite(pin1, LOW);
-      digitalWrite(pin2, HIGH);
-      analogWrite(enable, spd);
-    }
+  void Forward(int speed) {
+    spd = speed;
+    digitalWrite(pin1, LOW);
+    digitalWrite(pin2, HIGH);
+    analogWrite(enable, spd);
+  }
 
-    void Backward(int speed) {
-      spd = speed;
-      digitalWrite(pin1, HIGH);
-      digitalWrite(pin2, LOW);
-      analogWrite(enable, spd);
-    }
+  void Backward(int speed) {
+    spd = speed;
+    digitalWrite(pin1, HIGH);
+    digitalWrite(pin2, LOW);
+    analogWrite(enable, spd);
+  }
 
-    void Stop() {
-      digitalWrite(pin1, HIGH);
-      digitalWrite(pin2, HIGH);
-      analogWrite(enable, 0);
-    }
+  void Stop() {
+    digitalWrite(pin1, HIGH);
+    digitalWrite(pin2, HIGH);
+    analogWrite(enable, 0);
+  }
 };
 
 DCMotor Motor1, Motor2;
@@ -60,10 +60,8 @@ void forward(int v1, int v2) {
 }
 void obstaculo(int v1, int v2) {
 
-    Motor1.Forward(v1);
-    Motor2.Forward(v2);
-
-
+  Motor1.Forward(v1);
+  Motor2.Forward(v2);
 }
 
 void curvaesq() {
@@ -106,13 +104,14 @@ void backward() {
 const int pinoTrig = 10;  // Pino do Trigger
 const int pinoEcho = 11;  // Pino do Echo
 
-unsigned long UScontadorMicros = micros();
+
 float distancia;
 
 int leituraIRe, leituraIRd, leituraIRpontaD, leituraIRpontaE;
 int pinoIRpontaE = 12, pinoIRpontaD = 11, pinoIRe = 2, pinoIRd = 3;
 boolean obsEs = false, flagdir = false, flagesq = false;
-unsigned long IRcontadorMillis = millis();
+
+unsigned long EstadoDuration = millis();
 unsigned long OBScontadorMillis = millis();
 
 
@@ -148,7 +147,7 @@ void loop() {
   leituraIRpontaE = digitalRead(pinoIRpontaE);
   leituraIRd = digitalRead(pinoIRd);
 
-  if ((leituraIRe == HIGH || leituraIRpontaD == HIGH ||  leituraIRpontaE == HIGH ||  leituraIRd == HIGH) && obsEs == false ) IRcontadorMillis = millis();
+  // if ((leituraIRe == HIGH || leituraIRpontaD == HIGH ||  leituraIRpontaE == HIGH ||  leituraIRd == HIGH) && obsEs == false ) IRcontadorMillis = millis();
   /*if ((millis() - IRcontadorMillis) >= 2000) {
     Serial.print("leitura da infra da flag esquerda é ");
     Serial.println(leituraIRpontaE);
@@ -174,59 +173,62 @@ void loop() {
 
   if (leituraIRpontaE == HIGH) flagesq = true;
 
-  if (millis() - IRcontadorMillis < 5000 && millis() - OBScontadorMillis > 2000) {
+  if (millis() - EstadoDuration < 5000 && millis() - OBScontadorMillis > 2000) {
 
 
     if ((leituraIRd == HIGH && leituraIRe == HIGH) && (flagdir == false && flagesq == false)) {
       estadoAtual = ESTADO_FRENTE_SAPATINHO;
-    }
-
-
-    if (flagdir == true) {
-      estadoAtual = ESTADO_DIREITA;
     } else {
-      if (leituraIRd == HIGH) {
-        // detecta para fazer curva para a direita
-        flagesq = false;
+
+
+      if (flagdir == true) {
         estadoAtual = ESTADO_DIREITA;
+      } else {
+        if (leituraIRd == HIGH) {
+          // detecta para fazer curva para a direita
+          flagesq = false;
+          estadoAtual = ESTADO_DIREITA;
+        }
       }
-    }
 
-    if (flagesq == true) {
-      estadoAtual = ESTADO_ESQUERDA;
-    } else {
-      if (leituraIRe == HIGH) {
-        // detecta para fazer curva para a esquerda
-        flagdir = false;
+      if (flagesq == true) {
         estadoAtual = ESTADO_ESQUERDA;
+      } else {
+        if (leituraIRe == HIGH) {
+          // detecta para fazer curva para a esquerda
+          flagdir = false;
+          estadoAtual = ESTADO_ESQUERDA;
+        }
+      }
+
+      if ((leituraIRd == LOW && leituraIRe == LOW) && (flagdir == false && flagesq == false)) {
+        estadoAtual = ESTADO_FRENTE;
+      }
+
+
+      if (flagdir == true && flagesq == true && estadoAnterior == ESTADO_DIREITA) {
+        flagesq = false;
+        estadoAtual = estadoAnterior;
+      } else if (flagdir == true && flagesq == true && estadoAnterior == ESTADO_ESQUERDA) {
+        flagdir = false;
+        estadoAtual = estadoAnterior;
       }
     }
-
-    if ((leituraIRd == LOW && leituraIRe == LOW) && (flagdir == false && flagesq == false)) {
-      estadoAtual = ESTADO_FRENTE;
-    }
-
-
-    if (flagdir == true && flagesq == true && estadoAnterior == ESTADO_DIREITA) {
-      flagesq = false;
-      estadoAtual = estadoAnterior;
-    } else if (flagdir == true && flagesq == true && estadoAnterior == ESTADO_ESQUERDA) {
-      flagdir = false;
-      estadoAtual = estadoAnterior;
-    }
-  } else if (millis() - IRcontadorMillis > 5000 && (leituraIRe == LOW && leituraIRpontaD == LOW &&  leituraIRpontaE == LOW &&  leituraIRd == LOW)) {
+  } else if (millis() - EstadoDuration > 5000) {
     estadoAtual = ESTADO_OBSTACULO;
     obsEs = true;
-    IRcontadorMillis = millis();
-    OBScontadorMillis = millis();
 
+    OBScontadorMillis = millis();
   }
 
-  if (estadoAtual != estadoAnterior) estadoAnterior = estadoAtual;
+  if (estadoAtual != estadoAnterior) {
+    estadoAnterior = estadoAtual;
+    EstadoDuration = millis();
+  }
 
   switch (estadoAtual) {
     case ESTADO_FRENTE:
-      forward(225, 230);
+      forward(215, 220);
       break;
 
     case ESTADO_PARADO:
@@ -246,7 +248,7 @@ void loop() {
       break;
 
     case ESTADO_FRENTE_SAPATINHO:
-      forward(200, 180);
+      forward(170, 180);
       break;
 
     case ESTADO_OBSTACULO:
